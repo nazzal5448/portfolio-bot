@@ -1,33 +1,32 @@
-import streamlit as st
-from langchain_setup import output_parser, llm, prompt_template, build_qa_chain_with_memory
-from langchain.memory import ConversationBufferMemory
-from langchain.chains.combine_documents.stuff import create_stuff_documents_chain
+from fastapi import FastAPI, Header, HTTPException
+from pydantic import BaseModel
+from langchain_setup import qa_chain, output_parser
+import os
+import dotenv
+import uvicorn
 
-# Initialize memory for session
-if "memory" not in st.session_state:
-    st.session_state.memory = ConversationBufferMemory(
-        memory_key="chat_history",
-        return_messages=True
-    )
+app = FastAPI()
+dotenv.load_dotenv()
 
-# Build chain using memory
-qa_chain = build_qa_chain_with_memory(st.session_state.memory)
+API_KEY = os.environ["API_KEY"]
 
-st.title("🧠 Portfolio Chatbot: Ask About Nazzal")
+class QueryInput(BaseModel):
+    query: str
 
-user_input = st.text_input("Ask a question about Nazzal:", "")
+@app.post("/chat")
+async def chat(input: QueryInput, authorization: str = Header(None)):
+    if authorization != f"Bearer {API_KEY}":
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
-if user_input:
-    result = qa_chain.invoke({"question": user_input})
-    parsed_response = output_parser.invoke(result.get("result"))
+    query = input.query
+    result = qa_chain.invoke(query)
+    parsed_output = output_parser.invoke(result.get("result"))
 
-    # Display result
-    st.markdown(f"**🤖 Xel:** {parsed_response}")
+    return {
+        "response": parsed_output,
+        "raw": result
+    }
 
-    # Show chat history
-    with st.expander("Chat History"):
-        for msg in st.session_state.memory.chat_memory.messages:
-            if msg.type == "human":
-                st.markdown(f"**🧑 You:** {msg.content}")
-            elif msg.type == "ai":
-                st.markdown(f"**🤖 Xel:** {msg.content}")
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000)) 
+    uvicorn.run(app, host="0.0.0.0", port=port)
