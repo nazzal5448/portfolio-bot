@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from langchain_setup import qa_chain, output_parser
 import os
 import dotenv
-
+import uvicorn
 
 app = FastAPI()
 dotenv.load_dotenv()
@@ -26,3 +26,7 @@ async def chat(input: QueryInput, authorization: str = Header(None)):
         "response": parsed_output,
         "raw": result
     }
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000)) 
+    uvicorn.run(app, host="0.0.0.0", port=port)
