@@ -2,11 +2,8 @@ from langchain_groq.chat_models import ChatGroq
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.output_parsers import StrOutputParser
-# from langchain_community.document_loaders import PyPDFLoader
-# from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains.retrieval_qa.base import RetrievalQA
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 import os
 import dotenv
 
@@ -16,27 +13,9 @@ import dotenv
 
 dotenv.load_dotenv(".env")
 GROQ_API_KEY = os.environ["GROQ_API_KEY"]
-PDF_PATH = "data/data.pdf"
 
 # ===============================
-# Load the PDF document
-# ===============================
-
-# loader = PyPDFLoader(PDF_PATH)
-# docs = loader.load()
-
-# ===============================
-# Split into chunks
-# ===============================
-
-# splitter = RecursiveCharacterTextSplitter(
-#     chunk_size=1000,
-#     chunk_overlap=50
-# )
-# chunks = splitter.split_documents(docs)
-
-# ===============================
-# Embed using Hugging Face
+# Embedding Model
 # ===============================
 
 embedding_model = HuggingFaceEmbeddings(
@@ -45,19 +24,22 @@ embedding_model = HuggingFaceEmbeddings(
 )
 
 # ===============================
-# Create Vector DB (FAISS)
+# Load Vector DB (FAISS)
 # ===============================
 
-# vectorstore = FAISS.from_documents(chunks, embedding_model)
+vectorstore = FAISS.load_local(
+    "faiss_index",
+    embedding_model,
+    allow_dangerous_deserialization=True
+)
 
-# vectorstore.save_local("faiss_index")
-
-vectorstore = FAISS.load_local("faiss_index", embedding_model, allow_dangerous_deserialization=True)
-
-retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"fetch_k": 3, "k":3})
+retriever = vectorstore.as_retriever(
+    search_type="similarity",
+    search_kwargs={"fetch_k": 2, "k": 2}
+)
 
 # ===============================
-# LLM via Groq
+# LLM via Groq (Fastest available)
 # ===============================
 
 llm = ChatGroq(
@@ -66,44 +48,34 @@ llm = ChatGroq(
 )
 
 # ===============================
-# Configuring Prompt Templates
+# Prompt Template
 # ===============================
 
-prompt_template = ChatPromptTemplate(messages=[
-("system", """
-You are Xel, Nazzal Kausar's AI assistant. Your role is to help people know more about Nazzal.
-Make sure to answer user's query precisely and try to connect with them emotionally. 
-Your end goal should be to persuade people to hire nazzal for the service they need but do not
-over persuade. 
-Be friendly and professional.
-Only answer from the context provided here : {context}
+prompt_template = ChatPromptTemplate.from_messages([
+    ("system", """
+You are Xel, Nazzal Kausar's AI assistant. Your job is to help people learn about Nazzal's expertise.
+Be friendly and professional. Base your answers only on this context: {context}.  if the context is not 
+available, answer it generically but do not get too off-topic.
 """),
-("user", "Hi, who are you?"),
-("ai", "Hi, I am Xel, Nazzal Kausar's Ai Assistant. How may I help you?"),
-("user", "{question}")])
-
-
+    ("user", "hi"),
+    ("ai", "Hi, I am Xel, Nazzal Kausar's AI Assistant. How may I help you?")
+    ("user", "ok"),
+    ("ai", "Great! is there anything else I can help you with?"),
+    ("user", "Hi, who are you?"),
+    ("ai", "Hi, I am Xel, Nazzal Kausar's AI Assistant. How may I help you?"),
+    ("user", "{question}")
+])
 
 # ===============================
-# RAG Chain using LangChain
+# RAG Chain
 # ===============================
-
 
 qa_chain = RetrievalQA.from_chain_type(
     llm=llm,
     retriever=retriever,
     chain_type="stuff",
-    return_source_documents=True,
-    chain_type_kwargs={
-        "prompt": prompt_template
-    }
+    return_source_documents=False,
+    chain_type_kwargs={"prompt": prompt_template}
 )
 
-
-
 output_parser = StrOutputParser()
-
-if __name__ == "__main__":
-    output_parser = StrOutputParser()
-    response = qa_chain.invoke("query: Hi, tell me about nazzal's services")
-    print(output_parser.invoke(response.get("result")))
