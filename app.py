@@ -29,6 +29,9 @@ class QueryInput(BaseModel):
 def home():
     return {"message":"The chatbot is running!"}
 
+@app.get("/ping")
+def ping():
+    return {"message":"The site is up and running!"}
 
 @app.post("/chat")
 async def chat(input: QueryInput, authorization: str = Header(None)):
