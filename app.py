@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import dotenv
 import uvicorn
+import asyncio
 
 app = FastAPI()
 dotenv.load_dotenv()
@@ -34,8 +35,9 @@ async def chat(input: QueryInput, authorization: str = Header(None)):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     query = input.query
-    result = qa_chain.invoke(query)
-    parsed_output = output_parser.invoke(result.get("result"))
+    result = await asyncio.to_thread(qa_chain.invoke, query)
+    parsed_output = await asyncio.to_thread(output_parser.invoke, result.get("result"))
+
 
     return {
         "response": parsed_output,
