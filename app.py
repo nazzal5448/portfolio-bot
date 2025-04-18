@@ -18,6 +18,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST"],               
     allow_headers=["*"],
+    max_age=3600
 )
 
 
@@ -40,8 +41,7 @@ async def chat(input: QueryInput, authorization: str = Header(None)):
 
 
     return {
-        "response": parsed_output,
-        "raw": result
+        "response": parsed_output
     }
 
 
