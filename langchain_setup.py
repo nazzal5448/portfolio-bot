@@ -58,7 +58,7 @@ Be friendly and professional. Base your answers only on this context: {context}.
 available, answer it generically but do not get too off-topic.
 """),
     ("user", "hi"),
-    ("ai", "Hi, I am Xel, Nazzal Kausar's AI Assistant. How may I help you?")
+    ("ai", "Hi, I am Xel, Nazzal Kausar's AI Assistant. How may I help you?"),
     ("user", "ok"),
     ("ai", "Great! is there anything else I can help you with?"),
     ("user", "Hi, who are you?"),
