@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
 from langchain_setup import qa_chain, output_parser
+from fastapi.middleware.cors import CORSMiddleware
 import os
 import dotenv
 import uvicorn
@@ -9,6 +10,15 @@ app = FastAPI()
 dotenv.load_dotenv()
 
 API_KEY = os.environ["API_KEY"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://nazzalkausar.com"],  
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],               
+    allow_headers=["*"],
+)
+
 
 class QueryInput(BaseModel):
     query: str
